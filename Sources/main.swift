@@ -71,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             Loudness follows EBU R128 / ITU-R BS.1770-4: K-weighted, gated integrated \
             LUFS, loudness range, and 4x oversampled true peak. Verified against \
-            ffmpeg's ebur128 to within 0.04 LU.
+            ffmpeg's ebur128 to within 0.05 LU.
 
             Correlation is per-block Pearson across L/R. +1 is mono, 0 is decorrelated, \
             below 0 means the low end partly cancels when a club system sums to mono.

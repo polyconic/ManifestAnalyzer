@@ -4,7 +4,7 @@ Batch mastering QA for macOS. Point it at a folder of masters and it tells you
 what is wrong with them before you ship.
 
 Companion to [Nyquist](../nyquist), which is the single-file interactive
-spectrum analyser. Manifest is the pass across a whole folder. Double-clicking a
+spectrum analyzer. Manifest is the pass across a whole folder. Double-clicking a
 row here opens that file in Nyquist.
 
 ## Building
@@ -54,8 +54,10 @@ so the K-weighting is derived from the analog prototype and works at any rate.
 Correlation was checked against known signals — identical channels read +1.000,
 polarity-inverted read −1.000, independent noise +0.0007.
 
-True peak follows the BS.1770 Annex 2 method but not its exact tabulated filter,
-so treat it as accurate to a few hundredths of a dB rather than certified.
+True peak follows the BS.1770 Annex 2 method but not its exact tabulated filter.
+Across seven comparison files it was within 0.05 dB of ffmpeg on typical masters
+and 0.13 dB on the most heavily clipped one, where the choice of interpolation
+filter matters most. Good enough to judge headroom; not certified.
 
 ## Profiles
 
@@ -78,5 +80,5 @@ spreadsheet.
 
 ## Distribution
 
-Ad-hoc signed, not notarised. First launch on another Mac needs control-click →
+Ad-hoc signed, not notarized. First launch on another Mac needs control-click →
 Open, or `xattr -dr com.apple.quarantine /Applications/Manifest.app`.

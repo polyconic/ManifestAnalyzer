@@ -28,12 +28,12 @@ struct QAProfile {
     static let club = QAProfile(
         name: "Club / DJ", targetLUFS: nil, lufsTolerance: 0,
         truePeakCeiling: -0.3, minCorrelation: 0.0,
-        note: "Loudness unconstrained. Checks headroom and mono compatibility only.")
+        note: "Loudness unconstrained. Over 0 dBTP warns rather than fails — a median commercial club master sits at about +0.25.")
 
     static let streaming = QAProfile(
         name: "Streaming (−14 LUFS)", targetLUFS: -14, lufsTolerance: 1.0,
         truePeakCeiling: -1.0, minCorrelation: 0.0,
-        note: "Spotify, YouTube and Amazon normalise to about −14 LUFS.")
+        note: "Spotify, YouTube and Amazon normalize to about −14 LUFS.")
 
     static let appleMusic = QAProfile(
         name: "Apple Music (−16 LUFS)", targetLUFS: -16, lufsTolerance: 1.0,
@@ -49,16 +49,25 @@ struct QAProfile {
                   bitDepth: Int, sampleRate: Double) -> [Check] {
         var checks: [Check] = []
 
-        // True peak.
+        // True peak. Over 0 dBTP is widespread in commercial club masters — a
+        // reference set of eight had a median of +0.25 — so it warns rather than
+        // fails until it is far enough over to distort on ordinary playback.
         let tp = loudness.truePeakDBTP
-        if tp > truePeakCeiling {
-            let over = tp - truePeakCeiling
+        if tp > 1.0 {
             checks.append(Check(
-                severity: tp > 0 ? .fail : .warn,
+                severity: .fail,
                 title: String(format: "True peak %+.2f dBTP", tp),
-                detail: tp > 0
-                    ? String(format: "Over full scale by %.2f dB. Inter-sample peaks will clip on conversion to MP3/AAC and on many DACs.", tp)
-                    : String(format: "%.2f dB above the %.1f dBTP ceiling for this profile.", over, truePeakCeiling)))
+                detail: String(format: "%.2f dB over full scale. Far enough over that lossy encodes will clip audibly and some DACs will distort on playback, not just on conversion.", tp)))
+        } else if tp > 0 {
+            checks.append(Check(
+                severity: .warn,
+                title: String(format: "True peak %+.2f dBTP", tp),
+                detail: String(format: "%.2f dB over full scale. Common in commercial club masters, but MP3 and AAC encodes will clip here, because the encoder does not preserve your sample peaks. A %.1f dBTP ceiling avoids it.", tp, truePeakCeiling)))
+        } else if tp > truePeakCeiling {
+            checks.append(Check(
+                severity: .warn,
+                title: String(format: "True peak %+.2f dBTP", tp),
+                detail: String(format: "Under full scale but %.2f dB above this profile's %.1f dBTP ceiling.", tp - truePeakCeiling, truePeakCeiling)))
         } else {
             checks.append(Check(severity: .pass,
                                 title: String(format: "True peak %+.2f dBTP", tp),
@@ -67,8 +76,8 @@ struct QAProfile {
 
         // Sample peak at or above full scale suggests the render already clipped.
         if loudness.samplePeakDBFS >= -0.01 {
-            checks.append(Check(severity: .warn, title: "Sample peak at full scale",
-                                detail: "Samples are hitting 0 dBFS, so the file may already be clipped rather than merely loud."))
+            checks.append(Check(severity: .pass, title: "Sample peak at full scale",
+                                detail: "Samples reach 0 dBFS. Normal for a limited master; it is the true peak figure above that says whether there is headroom left."))
         }
 
         // Integrated loudness.

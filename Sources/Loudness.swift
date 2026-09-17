@@ -17,7 +17,7 @@ enum Loudness {
 
     // MARK: - K-weighting
 
-    /// Biquad in direct form I. Coefficients are normalised so a0 == 1.
+    /// Biquad in direct form I. Coefficients are normalized so a0 == 1.
     private struct Biquad {
         var b0, b1, b2, a1, a2: Double
 
@@ -185,8 +185,8 @@ enum Loudness {
     // MARK: - True peak
 
     /// 4x oversample with a Kaiser-windowed sinc, then take the peak. This follows
-    /// the BS.1770 Annex 2 method without using its exact tabulated filter, so treat
-    /// it as accurate to a few hundredths of a dB rather than certified.
+    /// the BS.1770 Annex 2 method without using its exact tabulated filter, so it can read
+    /// up to ~0.15 dB low on heavily clipped material.
     private static let phases: [[Float]] = makePolyphase()
 
     private static func makePolyphase(taps: Int = 32, factor: Int = 4) -> [[Float]] {
@@ -212,7 +212,7 @@ enum Loudness {
             let w = besselI0(beta * (1.0 - r * r).squareRoot()) / denom
             h[i] = sinc * w
         }
-        // Normalise so each phase has unity DC gain.
+        // Normalize so each phase has unity DC gain.
         var out = [[Float]](repeating: [], count: factor)
         for p in 0..<factor {
             var phase = [Double]()

@@ -73,17 +73,21 @@ enum ReportRenderer {
             x += inner + pad
         }
 
-        // Title block.
+        // Title block. Long names wrap within the column instead of running into
+        // the numbers; everything below moves down by however much they took.
         let titleWidth = 250 * scale
-        draw(r.displayName, at: CGPoint(x: x, y: top - 16 * scale),
-             font: .systemFont(ofSize: 13 * scale, weight: .semibold), color: Palette.text, ctx: ctx)
-        let sub = "\(r.relativePath)  ·  \(r.formatSummary)"
-        draw(sub, at: CGPoint(x: x, y: top - 32 * scale),
-             font: .systemFont(ofSize: 10 * scale), color: Palette.dim, ctx: ctx,
-             maxWidth: titleWidth)
-        draw("\(r.formattedDuration)  ·  \(r.channelCount == 1 ? "mono" : "stereo")",
-             at: CGPoint(x: x, y: top - 47 * scale),
-             font: .systemFont(ofSize: 10 * scale), color: Palette.dim, ctx: ctx)
+        var cursorY = top
+        cursorY -= drawWrapped(r.displayName, x: x, top: cursorY, width: titleWidth,
+                               font: .systemFont(ofSize: 13 * scale, weight: .semibold),
+                               color: Palette.text, maxLines: 2, ctx: ctx)
+        cursorY -= 3 * scale
+        cursorY -= drawWrapped("\(r.relativePath)  ·  \(r.formatSummary)", x: x, top: cursorY,
+                               width: titleWidth, font: .systemFont(ofSize: 10 * scale),
+                               color: Palette.dim, maxLines: 2, ctx: ctx)
+        cursorY -= 3 * scale
+        _ = drawWrapped("\(r.formattedDuration)  ·  \(r.channelCount == 1 ? "mono" : "stereo")",
+                        x: x, top: cursorY, width: titleWidth, font: .systemFont(ofSize: 10 * scale),
+                        color: Palette.dim, maxLines: 1, ctx: ctx)
 
         // Verdict chip.
         let chip = CGRect(x: x, y: rect.minY + pad, width: 54 * scale, height: 18 * scale)
@@ -110,7 +114,8 @@ enum ReportRenderer {
             ("BASS CORR", String(format: "%+.2f", r.stereo.lowOverall),
              r.stereo.lowFractionNegative > 0.05 ? .fail
                  : (r.stereo.lowFractionNegative > 0.01 ? .warn : .pass)),
-            ("WIDTH", r.stereo.sideToMidDB.isFinite
+            // Below -60 dB of side the channels are identical for any practical purpose.
+            ("WIDTH", r.stereo.sideToMidDB > -60
                 ? String(format: "%.0f dB", r.stereo.sideToMidDB) : "mono", .pass),
         ]
         let colWidth = 70 * scale
@@ -259,6 +264,32 @@ enum ReportRenderer {
         }
         (s as NSString).draw(at: p, withAttributes: attrs)
         NSGraphicsContext.current = saved
+    }
+
+    /// Draws text wrapped to `width`, hanging down from `top`, and returns the height used.
+    @discardableResult
+    static func drawWrapped(_ text: String, x: CGFloat, top: CGFloat, width: CGFloat,
+                            font: NSFont, color: NSColor, maxLines: Int, ctx: CGContext) -> CGFloat {
+        let para = NSMutableParagraphStyle()
+        para.lineBreakMode = .byWordWrapping
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color,
+                                                    .paragraphStyle: para]
+        let str = NSAttributedString(string: text, attributes: attrs)
+        // Measure a line the same way the text will be laid out; defaultLineHeight
+        // can come out a fraction short and silently drop the last line.
+        let lineHeight = NSAttributedString(string: "Ag", attributes: attrs)
+            .boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
+                          options: [.usesLineFragmentOrigin]).height
+        let natural = str.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
+                                       options: [.usesLineFragmentOrigin]).height
+        let height = ceil(min(natural, lineHeight * CGFloat(maxLines)) + 0.5)
+
+        let saved = NSGraphicsContext.current
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+        str.draw(with: CGRect(x: x, y: top - height, width: width, height: height),
+                 options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
+        NSGraphicsContext.current = saved
+        return height
     }
 
     static func drawCentered(_ text: String, in rect: CGRect, font: NSFont,

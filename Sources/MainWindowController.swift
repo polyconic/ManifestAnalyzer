@@ -136,7 +136,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         let stack = NSStackView(views: [
             open, rescanButton, progress, divider(),
             group("Profile", profilePopup),
-            group("Colour", colormapPopup),
+            group("Color", colormapPopup),
             recursiveCheck, divider(),
             export, csv,
         ])
@@ -263,7 +263,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         }
 
         progress.startAnimation(nil)
-        statusLabel.stringValue = "Analysing 0 of \(files.count)…"
+        statusLabel.stringValue = "Analyzing 0 of \(files.count)…"
         let cmap = colormap
         let prof = profile
 
@@ -284,7 +284,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
                 let count = n + 1
                 DispatchQueue.main.async {
                     guard token == self.scanToken else { return }
-                    self.statusLabel.stringValue = "Analysing \(count) of \(files.count)…"
+                    self.statusLabel.stringValue = "Analyzing \(count) of \(files.count)…"
                     self.reports = done
                     self.listView.reports = done
                 }
