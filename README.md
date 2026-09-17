@@ -87,5 +87,5 @@ spreadsheet.
 
 ## Distribution
 
-Ad-hoc signed, not notarized. First launch on another Mac needs control-click →
-Open, or `xattr -dr com.apple.quarantine /Applications/Manifest.app`.
+Ad-hoc signed, not notarized. Use `xattr -dr com.apple.quarantine /Applications/Manifest.app` or
+just "Open Anyway" in System Settings "Privacy & Security" settings.
