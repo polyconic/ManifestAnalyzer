@@ -18,7 +18,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     private var batch: [Check] = []
     private var folder: URL?
     private var profile = QAProfile.club
-    private var colormap = "Spek Classic"
+    private var colormap = "SoX"
     private var scanToken = 0
 
     convenience init() {

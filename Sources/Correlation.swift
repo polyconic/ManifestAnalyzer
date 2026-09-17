@@ -192,7 +192,7 @@ enum StereoAnalysis {
             }
         }
 
-        // Log compression — the centre is orders of magnitude denser than the edges.
+        // Log compression — the center is orders of magnitude denser than the edges.
         var peak: Float = 0
         vDSP_maxv(grid, 1, &peak, vDSP_Length(grid.count))
         if peak > 0 {

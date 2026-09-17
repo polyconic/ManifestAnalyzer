@@ -169,7 +169,7 @@ enum ReportRenderer {
              color: NSColor(white: 1, alpha: 0.45), ctx: ctx)
     }
 
-    /// Correlation over time, centred on zero. Below the line is the problem.
+    /// Correlation over time, centered on zero. Below the line is the problem.
     private static func drawCorrelation(_ r: TrackReport, in box: CGRect, ctx: CGContext, scale: CGFloat) {
         let values = r.stereo.overTime
         guard values.count > 1 else { return }

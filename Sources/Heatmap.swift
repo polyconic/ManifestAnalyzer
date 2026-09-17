@@ -2,7 +2,7 @@ import AppKit
 import CoreGraphics
 
 struct RenderSettings {
-    var colormapName: String = "Spek Classic"
+    var colormapName: String = "SoX"
     var dbFloor: Double = -110
     var gain: Double = 0
     var colormap: Colormap { Colormap.named(colormapName) }
