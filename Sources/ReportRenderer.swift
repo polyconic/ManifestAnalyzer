@@ -177,7 +177,7 @@ enum ReportRenderer {
         ctx.fill(box)
 
         let zeroY = box.minY + box.height * 0.5
-        for i in 0..<values.count {
+        for i in 0..<values.count where !values[i].isNaN {
             let v = CGFloat(min(max(values[i], -1), 1))
             let px = box.minX + box.width * CGFloat(i) / CGFloat(values.count)
             let h = box.height * 0.5 * v

@@ -1,7 +1,7 @@
 import AppKit
 import UniformTypeIdentifiers
 
-final class MainWindowController: NSWindowController, NSWindowDelegate {
+final class MainWindowController: NSWindowController, NSWindowDelegate, NSMenuItemValidation {
 
     private let listView = ReportListView()
     private let scrollView = NSScrollView()
@@ -20,6 +20,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     private var profile = QAProfile.club
     private var colormap = "SoX"
     private var scanToken = 0
+    private let stereoButton = NSButton(title: "Stereo", target: nil, action: nil)
+    private lazy var stereoPanel: StereoPanelController = {
+        let c = StereoPanelController(autosaveName: "ManifestStereoPanel")
+        c.onClose = { [weak self] in self?.stereoButton.state = .off }
+        return c
+    }()
 
     convenience init() {
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1480, height: 900),
@@ -107,6 +113,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         export.bezelStyle = .rounded
         let csv = NSButton(title: "CSV…", target: self, action: #selector(exportCSV))
         csv.bezelStyle = .rounded
+        stereoButton.setButtonType(.pushOnPushOff)
+        stereoButton.bezelStyle = .rounded
+        stereoButton.target = self
+        stereoButton.action = #selector(toggleStereo)
+        stereoButton.toolTip = "Show the selected track's stereo picture in its own window (⌘K)"
 
         for p in QAProfile.all { profilePopup.addItem(withTitle: p.name) }
         profilePopup.target = self
@@ -138,6 +149,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
             group("Profile", profilePopup),
             group("Color", colormapPopup),
             recursiveCheck, divider(),
+            stereoButton, divider(),
             export, csv,
         ])
         stack.orientation = .horizontal
@@ -296,6 +308,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
                 self.batch = AnalysisEngine.batchChecks(collected)
                 self.listView.reports = collected
                 self.updateStatus(failures: failures)
+                if let i = self.listView.selectedIndex, !collected.indices.contains(i) {
+                    self.listView.selectedIndex = nil
+                }
+                self.showDetail(self.listView.selectedIndex)
             }
         }
     }
@@ -314,6 +330,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func showDetail(_ index: Int?) {
+        stereoPanel.colormap = Colormap.named(colormap)
+        stereoPanel.model = index.flatMap { i -> StereoPanelModel? in
+            guard reports.indices.contains(i) else { return nil }
+            let r = reports[i]
+            return StereoPanelModel(title: r.displayName, duration: r.duration,
+                                    stereo: r.stereo, channelCount: r.channelCount)
+        }
+        if index == nil { stereoPanel.message = reports.isEmpty ? "Nothing loaded" : "Select a track" }
         guard let index, reports.indices.contains(index) else {
             detailLabel.stringValue = "Select a track to see its checks. Double-click to open it in Nyquist."
             return
@@ -339,6 +363,26 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
                              .foregroundColor: NSColor(white: 0.72, alpha: 1)]))
         }
         detailLabel.attributedStringValue = out
+    }
+
+    @objc func toggleStereo() {
+        if stereoPanel.isShown {
+            stereoPanel.close()
+            return
+        }
+        if listView.selectedIndex == nil, !reports.isEmpty {
+            listView.selectedIndex = 0
+        }
+        showDetail(listView.selectedIndex)
+        stereoPanel.show(beside: window)
+        stereoButton.state = .on
+    }
+
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        if item.action == #selector(toggleStereo) {
+            item.state = stereoPanel.isShown ? .on : .off
+        }
+        return true
     }
 
     private func openInNyquist(_ r: TrackReport) {

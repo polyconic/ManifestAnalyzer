@@ -19,6 +19,9 @@ enum StereoAnalysis {
         var lowOverall: Double          // energy-weighted; what mono summing actually costs
         var lowMinimum: Double          // worst gated block, as context
         var lowFractionNegative: Double // share of low-band ENERGY that is phase-negative
+        var lowOverTime: [Float] = []
+        /// Left energy relative to right, in dB. Positive leans left.
+        var balanceDB: Double = 0
     }
 
     static let lowBandHz = 150.0
@@ -26,7 +29,8 @@ enum StereoAnalysis {
     /// Correlation in near-silence is numerical noise, not a phase problem.
     static let gateBelowPeakDB = 40.0
 
-    static let scopeSize = 256
+    // Large enough for the stereo panel; row thumbnails scale it down.
+    static let scopeSize = 512
 
     static func analyze(channels: [[Float]], sampleRate: Double) -> Result {
         // Mono files are trivially correlated; report that rather than dividing by zero.
@@ -60,7 +64,7 @@ enum StereoAnalysis {
         let gatedCount = max(1, loud.count)
 
         // Mid/side energy ratio as a width figure.
-        var midEnergy = 0.0, sideEnergy = 0.0
+        var midEnergy = 0.0, sideEnergy = 0.0, leftEnergy = 0.0, rightEnergy = 0.0
         l.withUnsafeBufferPointer { lb in
             r.withUnsafeBufferPointer { rb in
                 let lp = lb.baseAddress!, rp = rb.baseAddress!
@@ -69,6 +73,8 @@ enum StereoAnalysis {
                     let s = (lp[i] - rp[i]) * 0.5
                     midEnergy += Double(m * m)
                     sideEnergy += Double(s * s)
+                    leftEnergy += Double(lp[i] * lp[i])
+                    rightEnergy += Double(rp[i] * rp[i])
                 }
             }
         }
@@ -106,7 +112,10 @@ enum StereoAnalysis {
                       vectorscopeSize: scopeSize,
                       lowOverall: pearson(lowL, lowR, offset: 0, count: n),
                       lowMinimum: Double(lowLoud.min() ?? 1),
-                      lowFractionNegative: lowNegEnergyFraction)
+                      lowFractionNegative: lowNegEnergyFraction,
+                      lowOverTime: lowOverTime,
+                      balanceDB: leftEnergy > 0 && rightEnergy > 0
+                          ? 10 * log10(leftEnergy / rightEnergy) : 0)
     }
 
     /// Per-block correlation plus a mask of which blocks are loud enough to mean
@@ -114,7 +123,8 @@ enum StereoAnalysis {
     private static func correlationOverTime(_ a: [Float], _ b: [Float], n: Int,
                                             block: Int, blockCount: Int) -> ([Float], [Bool]) {
         var levels = [Double](repeating: -300, count: blockCount)
-        var values = [Float](repeating: 1, count: blockCount)
+        // NaN marks blocks too quiet to judge, so timelines can leave them blank.
+        var values = [Float](repeating: .nan, count: blockCount)
         a.withUnsafeBufferPointer { ab in
             let ap = ab.baseAddress!
             for j in 0..<blockCount {
@@ -181,6 +191,9 @@ enum StereoAnalysis {
                 let lp = lb.baseAddress!, rp = rb.baseAddress!
                 grid.withUnsafeMutableBufferPointer { g in
                     for i in 0..<count {
+                        // Digital silence says nothing about the stereo image, and a
+                        // silent intro or unfinished download would swamp the center.
+                        if lp[i] == 0 && rp[i] == 0 { continue }
                         let x = (Double(rp[i]) - Double(lp[i])) * k
                         let y = (Double(lp[i]) + Double(rp[i])) * k
                         let px = Int(half + x * half)

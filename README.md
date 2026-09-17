@@ -59,6 +59,13 @@ Across seven comparison files it was within 0.05 dB of ffmpeg on typical masters
 and 0.13 dB on the most heavily clipped one, where the choice of interpolation
 filter matters most. Good enough to judge headroom; not certified.
 
+### Stereo panel
+
+**Stereo** in the toolbar, or ⌘K, opens a floating window for the selected track:
+a full-size vectorscope, correlation meter, correlation over time with the bass
+band separate, and width, balance and out-of-phase bass figures. It follows the
+selection. Nyquist has the same panel.
+
 ## Profiles
 
 | Profile | Target | True peak ceiling |
